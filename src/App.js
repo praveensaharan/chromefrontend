@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from "react";
+import Logo from "./Assets/vhgb.png";
+import GLogo from "./Assets/google.svg";
 import { auth, provider, onAuthStateChanged } from "./FirebaseConfig";
 import { signInWithPopup } from "firebase/auth";
 import Navbar from "./components/Navbar";
 import UserForm from "./components/UserForm";
 import UserTable from "./components/UserTable";
 import "./App.css";
+import "./index.css";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 function App() {
   const [users, setUsers] = useState([]);
   const [user, setUser] = useState(null);
+  const [showUserForm, setShowUserForm] = useState(false);
 
   useEffect(() => {
-    fetchUsers();
     onAuthStateChanged(auth, (user) => {
       if (user) {
         setUser(user);
@@ -20,15 +25,11 @@ function App() {
       }
     });
   }, []);
-
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch("http://localhost:5000/users");
-      const data = await response.json();
-      setUsers(data);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-    }
+  const handleButtonClick = () => {
+    setShowUserForm(!showUserForm);
+  };
+  const handleLogout = () => {
+    setUser(null); // Clear the user data to log out
   };
 
   const handleGoogleSignIn = () => {
@@ -42,64 +43,50 @@ function App() {
       });
   };
 
-  const handleOnSubmit = async (name, language, code) => {
-    try {
-      const response = await fetch("http://localhost:5000/register", {
-        method: "POST",
-        body: JSON.stringify({ name, language, code }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      const data = await response.json();
-      console.warn(data);
-      if (response.ok) {
-        alert("Data saved successfully");
-        fetchUsers();
-      }
-    } catch (error) {
-      console.error("Error saving data:", error);
-    }
-  };
-
-  const handleCopyCode = (code) => {
-    navigator.clipboard.writeText(code);
-    alert("Code copied to clipboard!");
-  };
-
-  const calculateDaysPassed = (date) => {
-    const currentDate = new Date();
-    const pastDate = new Date(date);
-    const timeDifference = currentDate.getTime() - pastDate.getTime();
-    const daysPassed = Math.floor(timeDifference / (1000 * 3600 * 24));
-
-    if (daysPassed < 1) {
-      const hoursPassed = Math.floor(timeDifference / (1000 * 3600));
-      return hoursPassed + " hours";
-    }
-
-    return daysPassed + " days";
-  };
-
   return (
     <>
       {user ? (
-        <div>
-          <h3>Welcome {user.displayName}</h3>
-          <p>{user.email}</p>
-          <img src={user.photoURL} alt="dp" referrerPolicy="no-referrer"></img>
-          <Navbar />
-
-          <UserForm onSubmit={handleOnSubmit} />
-
-          <UserTable
-            users={users}
-            handleCopyCode={handleCopyCode}
-            calculateDaysPassed={calculateDaysPassed}
-          />
-        </div>
+        <Router>
+          <div>
+            <Navbar
+              user1={user}
+              onLogout={handleLogout}
+              showUserForm={showUserForm}
+              btnclick={handleButtonClick}
+            />
+            <Routes>
+              <Route path="/" element={<UserTable />} />
+              <Route
+                path="/userform"
+                element={<UserForm email={user?.email} />}
+              />
+            </Routes>
+          </div>
+        </Router>
       ) : (
-        <button onClick={handleGoogleSignIn}>Sign In with Google</button>
+        <>
+          <nav className="border-gray-200 bg-gray-900">
+            <div className="max-w-screen-xl flex items-center justify-between mx-auto p-4">
+              <a className="flex items-center">
+                <img src={Logo} className="h-8 mr-3" alt="Flowbite Logo" />
+                <span className="self-center text-2xl font-semibold whitespace-nowrap text-gray-300 underline decoration-red-500">
+                  Codify
+                </span>
+              </a>
+            </div>
+          </nav>
+          <div className="flex justify-center items-center h-screen">
+            <button
+              className="bg-gray-300 hover:bg-gray-400 text-white font-bold py-2 px-4 rounded-full"
+              onClick={handleGoogleSignIn}
+            >
+              <div className="flex text-red-600">
+                <img className="w-8 h-8 pr-2" src={GLogo} />
+                Sign In with Google
+              </div>
+            </button>
+          </div>
+        </>
       )}
     </>
   );
